@@ -1,0 +1,93 @@
+pipeline {
+
+    agent any
+
+    environment {
+
+        DEV_IMAGE = "poornikannan/devops_trend-dev"
+        PROD_IMAGE = "poornikannan/devops_trend-prod"
+
+    }
+
+    stages {
+
+        stage('Clone') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build Docker') {
+            steps {
+                sh 'docker build -t app:${BUILD_NUMBER} .'
+            }
+        }
+
+        stage('Docker Login') {
+            steps {
+
+                withCredentials([
+                usernamePassword(
+                credentialsId: 'poornikannan',
+                usernameVariable: 'USER',
+                passwordVariable: 'PASS')
+                ]) {
+
+                    sh '''
+                    echo $PASS | docker login -u $USER --password-stdin
+                    '''
+                }
+            }
+        }
+
+        stage('Push DEV') {
+
+            when {
+                branch 'dev'
+            }
+
+            steps {
+
+                sh '''
+                docker tag app:${BUILD_NUMBER} $DEV_IMAGE:${BUILD_NUMBER}
+                docker push $DEV_IMAGE:${BUILD_NUMBER}
+                '''
+            }
+        }
+
+        stage('Push PROD') {
+
+            when {
+                branch 'main'
+            }
+
+            steps {
+
+                sh '''
+                docker tag app:${BUILD_NUMBER} $PROD_IMAGE:${BUILD_NUMBER}
+                docker push poornikannan/devops_trend-prod:tagname
+                '''
+            }
+        }
+
+        stage('Deploy') {
+
+            when {
+                branch 'main'
+            }
+
+            steps {
+
+                sh '''
+                docker stop react-app || true
+                docker rm react-app || true
+
+                docker run -d \
+                --name react-app \
+                -p 80:80 \
+                $PROD_IMAGE:${BUILD_NUMBER}
+                '''
+            }
+        }
+    }
+}
