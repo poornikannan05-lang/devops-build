@@ -30,7 +30,7 @@ pipeline {
                 usernamePassword(
                 credentialsId: 'poornikannan',
                 usernameVariable: 'USER',
-                passwordVariable: 'PASS')
+                passwordVariable: 'dckr_pat_CN7f0ePI0mT71RAZ4_-Rz8s9yDk')
                 ]) {
 
                     sh '''
@@ -58,7 +58,7 @@ pipeline {
         stage('Push PROD') {
 
             when {
-                branch 'main'
+                branch 'master'
             }
 
             steps {
